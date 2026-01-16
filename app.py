@@ -4,20 +4,28 @@ from groq import Groq
 
 st.set_page_config(page_title="Chatbot Excel", layout="centered")
 
-# Masukkan API Key dari Secrets Streamlit
+# Pastikan Secret wujud
+if "GROQ_API_KEY" not in st.secrets:
+    st.error("Sila masukkan GROQ_API_KEY dalam Advanced Settings!")
+    st.stop()
+
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 st.title("📊 Chatbot Data Excel")
 
-# Baca data
 @st.cache_data
 def load_data():
     df = pd.read_excel("data.xlsx")
-    return df.to_string()
+    # Ambil 20 baris pertama sahaja untuk ujian jika fail terlalu besar
+    # atau tukar ke format yang lebih ringkas
+    return df.to_string(index=False, max_rows=50) 
 
-context_data = load_data()
+try:
+    context_data = load_data()
+except Exception as e:
+    st.error(f"Gagal baca Excel: {e}")
+    st.stop()
 
-# Chat interface
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -31,13 +39,21 @@ if prompt := st.chat_input("Tanya tentang data Excel anda..."):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": f"Rujuk data ini: {context_data}"},
-                {"role": "user", "content": prompt}
-            ],
-            model="llama3-8b-8192",
-        )
-        response = chat_completion.choices[0].message.content
-        st.markdown(response)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+        try:
+            # Guna model Llama3-70b untuk lebih bijak atau Llama3-8b untuk kelajuan
+            chat_completion = client.chat.completions.create(
+                model="llama3-8b-8192", 
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": f"Anda pembantu data. Jawab ringkas berdasarkan data ini:\n\n{context_data}"
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2, # Lebih rendah untuk jawapan fakta yang tepat
+            )
+            response = chat_completion.choices[0].message.content
+            st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+        except Exception as e:
+            st.error(f"Ralat Groq: {e}")
