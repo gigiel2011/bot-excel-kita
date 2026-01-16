@@ -40,20 +40,20 @@ if prompt := st.chat_input("Tanya tentang data Excel anda..."):
 
     with st.chat_message("assistant"):
         try:
-            # Guna model Llama3-70b untuk lebih bijak atau Llama3-8b untuk kelajuan
-            chat_completion = client.chat.completions.create(
-                model="llama3-8b-8192", 
-                messages=[
-                    {
-                        "role": "system", 
-                        "content": f"Anda pembantu data. Jawab ringkas berdasarkan data ini:\n\n{context_data}"
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.2, # Lebih rendah untuk jawapan fakta yang tepat
-            )
-            response = chat_completion.choices[0].message.content
-            st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
-        except Exception as e:
-            st.error(f"Ralat Groq: {e}")
+    chat_completion = client.chat.completions.create(
+        # Gunakan model terbaru ini
+        model="llama-3.1-8b-instant", 
+        messages=[
+            {
+                "role": "system", 
+                "content": f"Anda pembantu data. Jawab ringkas berdasarkan data ini:\n\n{context_data}"
+            },
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2,
+    )
+    response = chat_completion.choices[0].message.content
+    st.markdown(response)
+    st.session_state.messages.append({"role": "assistant", "content": response})
+except Exception as e:
+    st.error(f"Ralat Groq: {e}")
